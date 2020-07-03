@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -15,9 +16,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/internal/common"
-	"github.com/shirou/gopsutil/net"
+	"github.com/zhangxin61/gopsutil/cpu"
+	"github.com/zhangxin61/gopsutil/internal/common"
+	"github.com/zhangxin61/gopsutil/net"
 	"golang.org/x/sys/unix"
 )
 
@@ -186,7 +187,7 @@ func (p *Process) Foreground() (bool, error) {
 }
 
 func (p *Process) ForegroundWithContext(ctx context.Context) (bool, error) {
-	// see https://github.com/shirou/gopsutil/issues/596#issuecomment-432707831 for implementation details
+	// see https://github.com/zhangxin61/gopsutil/issues/596#issuecomment-432707831 for implementation details
 	pid := p.Pid
 	statPath := common.HostProc(strconv.Itoa(int(pid)), "stat")
 	contents, err := ioutil.ReadFile(statPath)
@@ -951,15 +952,22 @@ func (p *Process) fillFromStatmWithContext(ctx context.Context) (*MemoryInfoStat
 func (p *Process) fillFromStatusWithContext(ctx context.Context) error {
 	pid := p.Pid
 	statPath := common.HostProc(strconv.Itoa(int(pid)), "status")
-	contents, err := ioutil.ReadFile(statPath)
+	f, err := os.Open(statPath)
+	//contents, err := ioutil.ReadFile(statPath)
 	if err != nil {
 		return err
 	}
-	lines := strings.Split(string(contents), "\n")
+	rd := bufio.NewReader(f)
+
+	//lines := strings.Split(string(contents), "\n")
 	p.numCtxSwitches = &NumCtxSwitchesStat{}
 	p.memInfo = &MemoryInfoStat{}
 	p.sigInfo = &SignalInfoStat{}
-	for _, line := range lines {
+	for {
+		line, err := rd.ReadString('\n') //以'\n'为结束符读入一行
+		if err != nil || io.EOF == err {
+			break
+		}
 		tabParts := strings.SplitN(line, "\t", 2)
 		if len(tabParts) < 2 {
 			continue
@@ -1162,7 +1170,7 @@ func (p *Process) fillFromTIDStatWithContext(ctx context.Context, tid int32) (ui
 	// docs).  Note: I am assuming at least Linux 2.6.18
 	iotime, err := strconv.ParseFloat(fields[i+40], 64)
 	if err != nil {
-		iotime = 0  // Ancient linux version, most likely
+		iotime = 0 // Ancient linux version, most likely
 	}
 
 	cpuTimes := &cpu.TimesStat{
