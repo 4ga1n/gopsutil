@@ -16,9 +16,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/zhangxin61/gopsutil/cpu"
-	"github.com/zhangxin61/gopsutil/internal/common"
-	"github.com/zhangxin61/gopsutil/net"
+	"github.com/4ga1n/gopsutil/cpu"
+	"github.com/4ga1n/gopsutil/internal/common"
+	"github.com/4ga1n/gopsutil/net"
 	"golang.org/x/sys/unix"
 )
 
@@ -187,7 +187,7 @@ func (p *Process) Foreground() (bool, error) {
 }
 
 func (p *Process) ForegroundWithContext(ctx context.Context) (bool, error) {
-	// see https://github.com/zhangxin61/gopsutil/issues/596#issuecomment-432707831 for implementation details
+	// see https://github.com/4ga1n/gopsutil/issues/596#issuecomment-432707831 for implementation details
 	pid := p.Pid
 	statPath := common.HostProc(strconv.Itoa(int(pid)), "stat")
 	contents, err := ioutil.ReadFile(statPath)
